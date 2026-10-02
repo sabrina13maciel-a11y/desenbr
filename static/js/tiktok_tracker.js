@@ -4,7 +4,8 @@
     window.TIKTOK_PIXELS = [
         'D5JG0KRC77U2KB72JBVG',
         'DA835D3C77UES9745010',
-        'DATMBQJC77U2INVDDEIG'
+        'DATMBQJC77U2INVDDEIG',
+        'DAU5QIRC77U36HVUOSU0'
         // Novos pixels adicionados aqui conforme solicitado
     ];
 

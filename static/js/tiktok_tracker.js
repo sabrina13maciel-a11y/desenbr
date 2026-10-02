@@ -5,7 +5,8 @@
         'D5JG0KRC77U2KB72JBVG',
         'DA835D3C77UES9745010',
         'DATMBQJC77U2INVDDEIG',
-        'DAU5QIRC77U36HVUOSU0'
+        'DAU5QIRC77U36HVUOSU0',
+        'DATKN0RC77U36HVUMJ90'
         // Novos pixels adicionados aqui conforme solicitado
     ];
 

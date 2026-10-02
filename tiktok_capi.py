@@ -8,7 +8,12 @@ import uuid
 import requests
 import logging
 
-TIKTOK_PIXEL_CODE  = 'D5JG0KRC77U2KB72JBVG'
+TIKTOK_PIXEL_CODES = [
+    'D5JG0KRC77U2KB72JBVG',
+    'DA835D3C77UES9745010',
+    'DATMBQJC77U2INVDDEIG',
+]
+TIKTOK_PIXEL_CODE = TIKTOK_PIXEL_CODES[0]
 TIKTOK_ACCESS_TOKEN = '604ceaa89ad255b22c669094ada45989e02f6952'
 TIKTOK_EVENTS_URL  = 'https://business-api.tiktok.com/open_api/v1.3/event/track/'
 
@@ -44,47 +49,51 @@ def send_purchase(
         if phone_norm and not phone_norm.startswith('55'):
             phone_norm = '55' + phone_norm
 
-        properties = {
-            'pixel_code': TIKTOK_PIXEL_CODE,
-            'event':      'Purchase',
-            'event_id':   event_id,
-            'timestamp':  int(time.time()),
-            'context': {
-                'user': {
-                    'external_id': _sha256(cpf) if cpf else '',
-                    'email':       _sha256(email) if email else '',
-                    'phone_number': _sha256(phone_norm) if phone_norm else '',
-                    'ip':          ip,
-                    'user_agent':  user_agent,
-                    'ttclid':      ttclid,
-                    'ttp':         ttp,
+        results = []
+        for pcode in TIKTOK_PIXEL_CODES:
+            properties = {
+                'pixel_code': pcode,
+                'event':      'Purchase',
+                'event_id':   f"{event_id}_{pcode}",
+                'timestamp':  int(time.time()),
+                'context': {
+                    'user': {
+                        'external_id': _sha256(cpf) if cpf else '',
+                        'email':       _sha256(email) if email else '',
+                        'phone_number': _sha256(phone_norm) if phone_norm else '',
+                        'ip':          ip,
+                        'user_agent':  user_agent,
+                        'ttclid':      ttclid,
+                        'ttp':         ttp,
+                    },
+                    'page': {
+                        'url': page_url,
+                    }
                 },
-                'page': {
-                    'url': page_url,
+                'properties': {
+                    'value':      value,
+                    'currency':   currency,
+                    'content_id': content_id,
+                    'content_type': 'product',
                 }
-            },
-            'properties': {
-                'value':      value,
-                'currency':   currency,
-                'content_id': content_id,
-                'content_type': 'product',
             }
-        }
 
-        headers = {
-            'Access-Token': TIKTOK_ACCESS_TOKEN,
-            'Content-Type': 'application/json',
-        }
+            headers = {
+                'Access-Token': TIKTOK_ACCESS_TOKEN,
+                'Content-Type': 'application/json',
+            }
 
-        resp = requests.post(
-            TIKTOK_EVENTS_URL,
-            json={'data': [properties]},
-            headers=headers,
-            timeout=8,
-        )
-        result = resp.json()
-        logger.info(f"[TIKTOK_CAPI] Purchase sent event_id={event_id} → {result}")
-        return result
+            resp = requests.post(
+                TIKTOK_EVENTS_URL,
+                json={'data': [properties]},
+                headers=headers,
+                timeout=8,
+            )
+            result = resp.json()
+            logger.info(f"[TIKTOK_CAPI] Purchase sent pixel={pcode} event_id={event_id} → {result}")
+            results.append(result)
+
+        return results[0] if results else None
 
     except Exception as e:
         logger.error(f"[TIKTOK_CAPI] Erro ao enviar Purchase: {e}")
@@ -101,41 +110,45 @@ def send_initiate_checkout(
     user_agent: str = '',
     page_url: str = '',
 ):
-    """Fire an InitiateCheckout event to TikTok CAPI."""
+    """Fire an InitiateCheckout event to TikTok CAPI for all configured pixels."""
     try:
-        properties = {
-            'pixel_code': TIKTOK_PIXEL_CODE,
-            'event':      'InitiateCheckout',
-            'event_id':   event_id,
-            'timestamp':  int(time.time()),
-            'context': {
-                'user': {
-                    'external_id': _sha256(cpf) if cpf else '',
-                    'ip':          ip,
-                    'user_agent':  user_agent,
+        results = []
+        for pcode in TIKTOK_PIXEL_CODES:
+            properties = {
+                'pixel_code': pcode,
+                'event':      'InitiateCheckout',
+                'event_id':   f"{event_id}_{pcode}",
+                'timestamp':  int(time.time()),
+                'context': {
+                    'user': {
+                        'external_id': _sha256(cpf) if cpf else '',
+                        'ip':          ip,
+                        'user_agent':  user_agent,
+                    },
+                    'page': {'url': page_url}
                 },
-                'page': {'url': page_url}
-            },
-            'properties': {
-                'value':    value,
-                'currency': currency,
+                'properties': {
+                    'value':    value,
+                    'currency': currency,
+                }
             }
-        }
 
-        headers = {
-            'Access-Token': TIKTOK_ACCESS_TOKEN,
-            'Content-Type': 'application/json',
-        }
+            headers = {
+                'Access-Token': TIKTOK_ACCESS_TOKEN,
+                'Content-Type': 'application/json',
+            }
 
-        resp = requests.post(
-            TIKTOK_EVENTS_URL,
-            json={'data': [properties]},
-            headers=headers,
-            timeout=8,
-        )
-        result = resp.json()
-        logger.info(f"[TIKTOK_CAPI] InitiateCheckout sent event_id={event_id} → {result}")
-        return result
+            resp = requests.post(
+                TIKTOK_EVENTS_URL,
+                json={'data': [properties]},
+                headers=headers,
+                timeout=8,
+            )
+            result = resp.json()
+            logger.info(f"[TIKTOK_CAPI] InitiateCheckout sent pixel={pcode} event_id={event_id} → {result}")
+            results.append(result)
+
+        return results[0] if results else None
 
     except Exception as e:
         logger.error(f"[TIKTOK_CAPI] Erro ao enviar InitiateCheckout: {e}")

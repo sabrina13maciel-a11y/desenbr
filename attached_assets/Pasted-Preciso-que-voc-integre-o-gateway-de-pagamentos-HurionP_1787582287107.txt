@@ -1,0 +1,200 @@
+Preciso que você integre o gateway de pagamentos HurionPay na aplicação. Siga as instruções abaixo de forma cirúrgica, sem alterar nenhum outro componente da aplicação.
+
+🔐 AUTENTICAÇÃO
+
+A HurionPay usa Basic Auth:
+
+ts
+const authHeader = "Basic " + Buffer.from(`${HURIONPAY_PUBLIC_KEY}:${HURIONPAY_SECRET_KEY}`).toString("base64");
+
+Variáveis de ambiente:
+
+HURIONPAY_PUBLIC_KEY
+HURIONPAY_SECRET_KEY
+
+Base URL: https://api.hurionpay.pro
+
+⚠️ Valores monetários em centavos. R$120,50 = 12050
+
+💳 CRIAR TRANSAÇÃO
+
+Endpoint: POST https://api.hurionpay.pro/v1/payment-transaction/create
+
+json
+{
+  "amount": 12050,
+  "payment_method": "pix",
+  "postback_url": "https://SUA_URL/webhook/hurionpay",
+  "metadata": "{}",
+  "ip": "IP_DO_CLIENTE",
+  "customer": {
+    "name": "Nome do cliente",
+    "email": "cliente@email.com",
+    "document": {
+      "number": "12345678900",
+      "type": "cpf"
+    },
+    "phone": "+5511999999999"
+  },
+  "items": [
+    {
+      "title": "Nome do produto",
+      "unit_price": 12050,
+      "quantity": 1,
+      "tangible": false,
+      "external_ref": "produto_001"
+    }
+  ]
+}
+
+Campos obrigatórios: amount, payment_method, customer, postback_url, items, metadata
+
+payment_method aceita: pix | credit_card | boleto
+
+document.type aceita: cpf | cnpj
+
+Campos extras por método:
+
+PIX:
+
+json
+"pix": { "expires_in_days": 1 }
+
+Boleto:
+
+json
+"boleto": { "expires_in_days": 3 }
+
+Cartão de crédito:
+
+json
+"card": {
+  "number": "4111111111111111",
+  "holder_name": "NOME NO CARTÃO",
+  "expiration_month": 12,
+  "expiration_year": 2026,
+  "cvv": "123"
+},
+"installments": 1
+
+Campo opcional — frete:
+
+json
+"shipping": {
+  "fee": 1000,
+  "address": {
+    "street": "Av. Paulista",
+    "street_number": "1000",
+    "complement": "Sala 5",
+    "zip_code": "01310-000",
+    "neighborhood": "Bela Vista",
+    "city": "São Paulo",
+    "state": "SP",
+    "country": "BR"
+  }
+}
+
+Campo opcional — split de pagamento:
+
+json
+"split": [
+  {
+    "company_id": "ID_DA_EMPRESA",
+    "percentage": 20
+  }
+]
+
+Resposta de sucesso (200):
+
+json
+{
+  "data": [{
+    "id": "pay_abc123",
+    "status": "PENDING",
+    "payment_method": "pix",
+    "amount": 12050,
+    "pix": [{
+      "qr_code": "string",
+      "url": "string",
+      "e2_e": "string",
+      "expiration_date": "2026-06-16T00:00:00Z"
+    }]
+  }]
+}
+
+Use data[0].pix[0].qr_code para exibir o QR Code e data[0].pix[0].url como link de pagamento.
+
+Outros códigos: 400 (validação), 401 (autenticação), 500 (erro interno).
+
+🔍 BUSCAR TRANSAÇÃO
+
+Endpoint: GET https://api.hurionpay.pro/v1/payment-transaction/info/{id}
+
+↩️ ESTORNAR TRANSAÇÃO
+
+Endpoint: POST https://api.hurionpay.pro/v1/payment-transaction/{id}/refund
+
+Sem body.
+
+💰 CONSULTAR SALDO
+
+Endpoint: GET https://api.hurionpay.pro/v1/dashboard/balance
+
+💸 CRIAR SAQUE
+
+Endpoint: POST https://api.hurionpay.pro/v1/wallet-transaction/create-withdrawal
+
+📡 WEBHOOK (postback_url)
+
+A HurionPay envia POST para a postback_url sempre que o status mudar. Formato:
+
+json
+{
+  "Id": "a24207e615224923bf4a68265d519fc6",
+  "CreatedAt": "05/11/2025 21:19:42",
+  "UpdatedAt": "2025-11-05T21:19:42.3648396",
+  "ExternalId": "27615041",
+  "E2E": "E18236120202604261530s8f7a6b5c4d3e2f1",
+  "PaidAt": "0001-01-01T00:00:00",
+  "Amount": 100,
+  "Installments": 0,
+  "PaymentMethod": "pix",
+  "Status": "PENDING",
+  "PostbackUrl": "https://..."
+}
+
+⚠️ Amount no webhook vem em REAIS, não centavos — diferente do amount enviado na criação, que é em centavos. Converter no código.
+
+Mapeamento de status (transações):
+
+Status	Significado
+PENDING	Aguardando pagamento
+PAID	Pagamento realizado
+REFUNDED	Transação estornada
+REFUSED	Transação recusada
+CHARGEBACK	Chargeback
+PRECHARGEBACK	Pré-chargeback
+EXPIRED	Expirado
+ERROR	Erro na transação
+
+Webhook de transferências (saque):
+
+json
+{
+  "Id": "2471f1c668de4900b0634bff114f0820",
+  "Status": "PAID",
+  "WalletTransactionType": "WITHDRAWAL",
+  "TotalAmount": 1.00,
+  "PostbackUrl": "https://..."
+}
+Status	Significado
+PAID	Transferência realizada
+PROCESSING	Processando pagamento
+REFUSED	Transferência recusada
+✅ O QUE DEVE SER FEITO
+Criar o service hurionpay.ts com as funções: createTransaction, getTransaction, refundTransaction, getBalance
+Adicionar HURIONPAY_PUBLIC_KEY e HURIONPAY_SECRET_KEY no .env.example
+Integrar o checkout para chamar createTransaction ao finalizar o pedido
+Criar a rota POST /webhook/hurionpay que recebe o payload, identifica o pedido via ExternalId, converte Amount de reais para centavos se necessário, e atualiza o status do pedido conforme a tabela de mapeamento
+Para PIX, exibir na tela de checkout o qr_code e url retornados na criação
+Não alterar nenhuma outra parte do sistema além do necessário para essa integração

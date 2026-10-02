@@ -1,0 +1,25 @@
+# Ambientes e Variáveis Secretas (CRÍTICO: nunca subir credenciais)
+.env
+.env.local
+.env.*.local
+
+# Ambientes virtuais
+venv/
+env/
+ENV/
+.venv/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Configurações locais / Replit
+.replit
+replit.nix
+scratch/

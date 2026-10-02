@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento Seguro PIX — BravoPay</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f3f4f6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 16px;
+        }
+
+        .header-bar {
+            width: 100%;
+            max-width: 520px;
+            background: #1351B4;
+            color: #fff;
+            padding: 16px 20px;
+            border-radius: 14px 14px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(19, 81, 180, 0.2);
+        }
+
+        .header-bar img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #fff;
+        }
+
+        .header-bar .title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .header-bar .subtitle {
+            font-size: 12px;
+            opacity: 0.85;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 520px;
+            background: #ffffff;
+            border-radius: 0 0 14px 14px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            width: fit-content;
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-status.approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f59e0b;
+            animation: pulse 1.5s infinite;
+        }
+
+        .badge-status.approved .pulse-dot {
+            background: #10b981;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .info-label {
+            color: #64748b;
+        }
+
+        .info-value {
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .amount-box {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .amount-box .label {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .amount-box .value {
+            font-size: 32px;
+            font-weight: 800;
+            color: #10b981;
+        }
+
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 0;
+        }
+
+        .qr-img {
+            width: 210px;
+            height: 210px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            background: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+        }
+
+        .code-box {
+            width: 100%;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 11px;
+            word-break: break-all;
+            color: #475569;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+
+        .btn-copy {
+            width: 100%;
+            background: #1351B4;
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-copy:hover {
+            background: #0f4091;
+            transform: translateY(-1px);
+        }
+
+        .btn-copy.copied {
+            background: #10b981;
+        }
+
+        .footer-note {
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .timer-box {
+            font-size: 13px;
+            color: #ef4444;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <img src="/static/images/atendente-avatar.png" alt="Atendente">
+        <div>
+            <div class="title">⚡ Cobrança PIX Oficial — BravoPay</div>
+            <div class="subtitle">Quitação de Acordo com Desconto de 99%</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="badge-status" id="statusBadge">
+                <div class="pulse-dot" id="statusDot"></div>
+                <span id="statusText">Aguardando Pagamento...</span>
+            </div>
+            <div class="timer-box">
+                <i class="far fa-clock"></i>
+                <span id="timerVal">10:00</span>
+            </div>
+        </div>
+
+        <div class="amount-box">
+            <div class="label">Valor Total do Acordo</div>
+            <div class="value">R$ {{ amount }}</div>
+        </div>
+
+        <div>
+            <div class="info-row">
+                <span class="info-label">Beneficiário</span>
+                <span class="info-value" id="leadName">{{ customer.nome }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">CPF</span>
+                <span class="info-value">{{ customer.cpf }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Gateway</span>
+                <span class="info-value">BravoPay (PIX Direto)</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">ID da Transação</span>
+                <span class="info-value" style="font-family: monospace; font-size: 12px;" id="txIdDisplay">{{ transaction_id }}</span>
+            </div>
+        </div>
+
+        <div class="qr-section">
+            <img src="{{ pix_qr }}" alt="QR Code PIX" class="qr-img">
+            <span style="font-size: 12px; color: #64748b;">Escaneie o QR Code no seu aplicativo bancário</span>
+        </div>
+
+        <div class="code-box" id="pixCode">{{ pix_code }}</div>
+
+        <button class="btn-copy" id="btnCopy" onclick="copyPixCode()">
+            <i class="far fa-copy"></i>
+            <span id="btnCopyText">Copiar Código PIX</span>
+        </button>
+
+        <p class="footer-note">
+            Assim que você concluir a transferência no seu banco, o sistema reconhecerá automaticamente via Webhook e atualizará o status aqui na tela.
+        </p>
+    </div>
+
+    <script>
+        const txId = "{{ transaction_id }}";
+        const pixCode = "{{ pix_code }}";
+
+        function copyPixCode() {
+            navigator.clipboard.writeText(pixCode).then(() => {
+                const btn = document.getElementById('btnCopy');
+                const btnText = document.getElementById('btnCopyText');
+                btn.classList.add('copied');
+                btnText.textContent = "✅ Código Copiado com Sucesso!";
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btnText.textContent = "Copiar Código PIX";
+                }, 3000);
+            });
+        }
+
+        // Timer regressivo
+        let timeLeft = 600;
+        const timerEl = document.getElementById('timerVal');
+        setInterval(() => {
+            if (timeLeft > 0) {
+                timeLeft--;
+                const min = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+                const sec = String(timeLeft % 60).padStart(2, '0');
+                timerEl.textContent = `${min}:${sec}`;
+            }
+        }, 1000);
+
+        // Polling de status na BravoPay
+        let checkInterval = setInterval(async () => {
+            if (!txId) return;
+            try {
+                const res = await fetch(`/check-payment/${txId}`);
+                const data = await res.json();
+                if (data.success && (data.status === 'approved' || data.status === 'paid')) {
+                    clearInterval(checkInterval);
+                    const badge = document.getElementById('statusBadge');
+                    const text = document.getElementById('statusText');
+                    badge.classList.add('approved');
+                    text.textContent = "🎉 Pagamento Confirmado!";
+                    alert("Pagamento confirmado com sucesso via BravoPay!");
+                }
+            } catch (e) {
+                console.error("Erro no polling:", e);
+            }
+        }, 3500);
+    </script>
+</body>
+</html>

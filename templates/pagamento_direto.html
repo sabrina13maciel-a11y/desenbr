@@ -318,7 +318,7 @@
                     const text = document.getElementById('statusText');
                     badge.classList.add('approved');
                     text.textContent = "🎉 Pagamento Confirmado!";
-                    alert("Pagamento confirmado com sucesso via BravoPay!");
+                    window.location.href = '/upsell1';
                 }
             } catch (e) {
                 console.error("Erro no polling:", e);

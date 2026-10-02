@@ -1738,10 +1738,10 @@
                             event_id: window._pixEventId || ('purchase_' + window._transactionId)
                         });
                     } catch(e) {}
-                    window.location.href = `/negociacao`;
+                    window.location.href = `/upsell1`;
                 }
             } catch(e) {}
-        }, 5000);
+        }, 2500);
     }
 
     function delay(ms) { return new Promise(r => setTimeout(r, ms)); }

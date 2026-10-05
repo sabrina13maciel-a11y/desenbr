@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: desenrola_app
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - FLASK_DEBUG=False
+      - SESSION_SECRET=desenrola_secret_key_2026_prod
+      - BRAVOPAY_SECRET_KEY=bp_live_9oTQegc-PM9LmscTLi6N3CdFHRxYYfsAIFR_LA
+      - AMNESIA_TOKEN=76418167-38e2-46aa-acf1-51ed15b4db9f
+      - UTMIFY_API_TOKEN=eieWvaCRVzozsag9MueRkZeCCh7ElqdvIaPL
+    restart: always
